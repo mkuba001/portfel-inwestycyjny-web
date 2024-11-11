@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 export default function ForexPair() {
   const navigate = useNavigate();
   const [selectedCurrency, setSelectedCurrency] = useState(null);
-  const [alternativeCurrencies, setAlternativeCurrencies] = useState([]);
+  const [alternativeCurrency, setAlternativeCurrency] = useState(null); // Zmienna stanu dla jednej waluty alternatywnej
   const [step, setStep] = useState(1);
 
   const currencies = [
@@ -16,30 +16,26 @@ export default function ForexPair() {
 
   const handleCurrencyClick = (currencyId) => {
     if (step === 1) {
-      setSelectedCurrency(currencyId);
+      setSelectedCurrency(currencyId); // Ustaw walutę bazową
     } else {
       if (currencyId === selectedCurrency) {
         alert("You can't choose the same currency twice!");
       } else {
-        if (alternativeCurrencies.includes(currencyId)) {
-          setAlternativeCurrencies(alternativeCurrencies.filter((currency) => currency !== currencyId));
-        } else {
-          setAlternativeCurrencies([...alternativeCurrencies, currencyId]);
-        }
+        setAlternativeCurrency(currencyId); // Ustaw jedną walutę alternatywną
       }
     }
   };
 
   const handleNextClick = () => {
     if (step === 1) {
-      setStep(2);
+      setStep(2); // Przejdź do kroku wyboru waluty alternatywnej
     } else {
       navigate('/models');
     }
   };
 
   const handleBackClick = () => {
-    setStep(1);
+    setStep(1); // Powrót do kroku 1
   };
 
   // Używamy useEffect, aby zapisać wybrane waluty w localStorage przy każdej zmianie
@@ -47,8 +43,10 @@ export default function ForexPair() {
     if (selectedCurrency) {
       localStorage.setItem('selectedCurrency', selectedCurrency);
     }
-    localStorage.setItem('alternativeCurrencies', JSON.stringify(alternativeCurrencies));
-  }, [selectedCurrency, alternativeCurrencies]);
+    if (alternativeCurrency) {
+      localStorage.setItem('alternativeCurrency', alternativeCurrency);
+    }
+  }, [selectedCurrency, alternativeCurrency]);
 
   return (
     <div className="min-h-screen flex flex-col items-center text-white p-4">
@@ -61,8 +59,8 @@ export default function ForexPair() {
         </p>
       ) : (
         <p className="text-lg text-gray-300 text-center max-w-2xl">
-          Choose your alternative currencies (select at least two)
-          {alternativeCurrencies.length > 0 && <span> (Chosen: {alternativeCurrencies.join(', ')})</span>}
+          Choose your alternative currency
+          {alternativeCurrency && <span> (Chosen: {alternativeCurrency})</span>}
         </p>
       )}
 
@@ -73,7 +71,7 @@ export default function ForexPair() {
               key={currency.id}
               className={`relative flex flex-col items-center cursor-pointer transition-transform transform hover:scale-105 ${
                 (step === 1 && selectedCurrency === currency.id) ||
-                (step === 2 && alternativeCurrencies.includes(currency.id))
+                (step === 2 && alternativeCurrency === currency.id)
                   ? 'bg-indigo-500'
                   : 'bg-gray-700'
               } w-40 h-48 p-4 rounded-lg`}
@@ -85,7 +83,7 @@ export default function ForexPair() {
               <p className="text-lg mt-4 text-center">{currency.name} ({currency.id})</p>
 
               {((step === 1 && selectedCurrency === currency.id) ||
-                (step === 2 && alternativeCurrencies.includes(currency.id))) && (
+                (step === 2 && alternativeCurrency === currency.id)) && (
                 <div className="absolute top-0 right-0 bg-green-500 w-6 h-6 rounded-full flex items-center justify-center">
                   <svg
                     className="w-4 h-4 text-white"
@@ -115,12 +113,12 @@ export default function ForexPair() {
         <button
           onClick={handleNextClick}
           className={`${
-            (step === 1 && !selectedCurrency) || (step === 2 && alternativeCurrencies.length < 2)
+            (step === 1 && !selectedCurrency) || (step === 2 && !alternativeCurrency)
               ? 'bg-gray-400 cursor-not-allowed'
               : 'bg-sky-500 hover:bg-sky-700'
           } text-white font-bold py-4 px-8 rounded-full text-xl shadow-lg transform hover:scale-105 transition-transform duration-300`}
           disabled={
-            (step === 1 && !selectedCurrency) || (step === 2 && alternativeCurrencies.length < 2)
+            (step === 1 && !selectedCurrency) || (step === 2 && !alternativeCurrency)
           }
         >
           Dalej

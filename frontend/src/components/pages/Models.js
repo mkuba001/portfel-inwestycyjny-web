@@ -3,20 +3,20 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Models() {
   const [selectedCurrency, setSelectedCurrency] = useState(null);
-  const [alternativeCurrencies, setAlternativeCurrencies] = useState([]);
+  const [alternativeCurrency, setAlternativeCurrency] = useState(null); // Zmienna stanu dla jednej waluty alternatywnej
   const [startDate, setStartDate] = useState('2024-01-11');
   const [endDate, setEndDate] = useState('2024-01-18');     
   const navigate = useNavigate();
 
   useEffect(() => {
     const storedBaseCurrency = localStorage.getItem('selectedCurrency');
-    const storedAlternativeCurrencies = JSON.parse(localStorage.getItem('alternativeCurrencies')) || [];
+    const storedAlternativeCurrency = localStorage.getItem('alternativeCurrency');
 
-    if (!storedBaseCurrency || storedAlternativeCurrencies.length < 2) {
+    if (!storedBaseCurrency || !storedAlternativeCurrency) {
       navigate('/forex-pair');
     } else {
       setSelectedCurrency(storedBaseCurrency);
-      setAlternativeCurrencies(storedAlternativeCurrencies);
+      setAlternativeCurrency(storedAlternativeCurrency);
     }
   }, [navigate]);
 
@@ -28,15 +28,16 @@ export default function Models() {
     const newEndDateObj = new Date(startDateObj);
     newEndDateObj.setDate(startDateObj.getDate() + 7);
 
-    
     const formattedEndDate = newEndDateObj.toISOString().split('T')[0];
     setEndDate(formattedEndDate);
   };
 
   const handlePredict = () => {
     console.log("Prediction requested");
-    console.log(startDate)
-    console.log(endDate)
+    console.log("Start Date:", startDate);
+    console.log("End Date:", endDate);
+    console.log("Base Currency:", selectedCurrency);
+    console.log("Alternative Currency:", alternativeCurrency);
   };
 
   return (
@@ -51,17 +52,12 @@ export default function Models() {
         <p className="text-lg text-red-500 mb-4">Base Currency is not selected.</p>
       )}
 
-      {alternativeCurrencies.length > 0 ? (
-        <div className="text-lg text-gray-300 mb-4">
-          <span className="font-bold">Alternative Currencies:</span>
-          <ul className="list-disc list-inside ml-4">
-            {alternativeCurrencies.map((currency, index) => (
-              <li key={index}>{currency}</li>
-            ))}
-          </ul>
-        </div>
+      {alternativeCurrency ? (
+        <p className="text-lg text-gray-300 mb-4">
+          <span className="font-bold">Alternative Currency:</span> {alternativeCurrency}
+        </p>
       ) : (
-        <p className="text-lg text-red-500 mb-4">No alternative currencies selected.</p>
+        <p className="text-lg text-red-500 mb-4">No alternative currency selected.</p>
       )}
 
       <div className="mt-8">

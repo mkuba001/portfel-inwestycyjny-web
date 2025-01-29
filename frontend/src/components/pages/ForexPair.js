@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function ForexPair() {
   const navigate = useNavigate();
-  const [selectedCurrency, setSelectedCurrency] = useState(null);
+  const [baseCurrency, setBaseCurrency] = useState(null);
   const [alternativeCurrency, setAlternativeCurrency] = useState(null); // Zmienna stanu dla jednej waluty alternatywnej
   const [step, setStep] = useState(1);
 
@@ -16,9 +16,9 @@ export default function ForexPair() {
 
   const handleCurrencyClick = (currencyId) => {
     if (step === 1) {
-      setSelectedCurrency(currencyId); // Ustaw walutę bazową
+      setBaseCurrency(currencyId); // Ustaw walutę bazową
     } else {
-      if (currencyId === selectedCurrency) {
+      if (currencyId === baseCurrency) {
         alert("You can't choose the same currency twice!");
       } else {
         setAlternativeCurrency(currencyId); // Ustaw jedną walutę alternatywną
@@ -40,13 +40,13 @@ export default function ForexPair() {
 
   // Używamy useEffect, aby zapisać wybrane waluty w localStorage przy każdej zmianie
   useEffect(() => {
-    if (selectedCurrency) {
-      localStorage.setItem('selectedCurrency', selectedCurrency);
+    if (baseCurrency) {
+      localStorage.setItem('baseCurrency', baseCurrency);
     }
     if (alternativeCurrency) {
       localStorage.setItem('alternativeCurrency', alternativeCurrency);
     }
-  }, [selectedCurrency, alternativeCurrency]);
+  }, [baseCurrency, alternativeCurrency]);
 
   return (
     <div className="min-h-screen flex flex-col items-center text-white p-4">
@@ -55,7 +55,7 @@ export default function ForexPair() {
       {step === 1 ? (
         <p className="text-lg text-gray-300 text-center max-w-2xl">
           Choose your base currency
-          {selectedCurrency && <span> (Chosen: {selectedCurrency})</span>}
+          {baseCurrency && <span> (Chosen: {baseCurrency})</span>}
         </p>
       ) : (
         <p className="text-lg text-gray-300 text-center max-w-2xl">
@@ -70,7 +70,7 @@ export default function ForexPair() {
             <div
               key={currency.id}
               className={`relative flex flex-col items-center cursor-pointer transition-transform transform hover:scale-105 ${
-                (step === 1 && selectedCurrency === currency.id) ||
+                (step === 1 && baseCurrency === currency.id) ||
                 (step === 2 && alternativeCurrency === currency.id)
                   ? 'bg-indigo-500'
                   : 'bg-gray-700'
@@ -82,7 +82,7 @@ export default function ForexPair() {
               </div>
               <p className="text-lg mt-4 text-center">{currency.name} ({currency.id})</p>
 
-              {((step === 1 && selectedCurrency === currency.id) ||
+              {((step === 1 && baseCurrency === currency.id) ||
                 (step === 2 && alternativeCurrency === currency.id)) && (
                 <div className="absolute top-0 right-0 bg-green-500 w-6 h-6 rounded-full flex items-center justify-center">
                   <svg
@@ -113,12 +113,12 @@ export default function ForexPair() {
         <button
           onClick={handleNextClick}
           className={`${
-            (step === 1 && !selectedCurrency) || (step === 2 && !alternativeCurrency)
+            (step === 1 && !baseCurrency) || (step === 2 && !alternativeCurrency)
               ? 'bg-gray-400 cursor-not-allowed'
               : 'bg-sky-500 hover:bg-sky-700'
           } text-white font-bold py-4 px-8 rounded-full text-xl shadow-lg transform hover:scale-105 transition-transform duration-300`}
           disabled={
-            (step === 1 && !selectedCurrency) || (step === 2 && !alternativeCurrency)
+            (step === 1 && !baseCurrency) || (step === 2 && !alternativeCurrency)
           }
         >
           Dalej

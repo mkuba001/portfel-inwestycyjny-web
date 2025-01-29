@@ -1,9 +1,14 @@
-import Header from '../components/Header'
+import Header from './Header'
 import Home from './pages/Home';
 import ForexPair from './pages/ForexPair';
 //import { BrowserRouter, Routes, Route, Outlet} from 'react-router-dom';
 import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
 import Models from './pages/Models';
+import Prediction from './pages/Prediction';
+import Results from './pages/Results'
+import Charts from './pages/Pages';
+
+
 
 export default function Router(){
   const Layout = () => {
@@ -30,6 +35,18 @@ export default function Router(){
                 {
                   path: "/models",
                   element: <Models />
+                },
+                {
+                  path: "/prediction",
+                  element: <Prediction />
+                },
+                {
+                  path: "/results",
+                  element: <Results />
+                },
+                {
+                  path: "/charts",
+                  element: <Charts />
                 }
             ]
         }

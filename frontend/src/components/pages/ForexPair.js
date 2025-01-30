@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function ForexPair() {
   const navigate = useNavigate();
   const [baseCurrency, setBaseCurrency] = useState(null);
-  const [alternativeCurrency, setAlternativeCurrency] = useState(null); // Zmienna stanu dla jednej waluty alternatywnej
+  const [alternativeCurrency, setAlternativeCurrency] = useState(null);
   const [step, setStep] = useState(1);
 
   const currencies = [
@@ -16,37 +16,36 @@ export default function ForexPair() {
 
   const handleCurrencyClick = (currencyId) => {
     if (step === 1) {
-      setBaseCurrency(currencyId); // Ustaw walutę bazową
+      setBaseCurrency(currencyId);
     } else {
       if (currencyId === baseCurrency) {
         alert("You can't choose the same currency twice!");
       } else {
-        setAlternativeCurrency(currencyId); // Ustaw jedną walutę alternatywną
+        setAlternativeCurrency(currencyId);
       }
     }
   };
 
   const handleNextClick = () => {
     if (step === 1) {
-      setStep(2); // Przejdź do kroku wyboru waluty alternatywnej
+      setStep(2);
     } else {
+      // Gdy obie waluty wybrane, przechodzimy do /models
+      // Zapisujemy do localStorage, żeby Models.js mogło je odczytać
+      localStorage.setItem('baseCurrency', baseCurrency);
+      localStorage.setItem('alternativeCurrency', alternativeCurrency);
+
+      // Czyścimy też ewentualny stary walletName, żeby w Models.js
+      // wymusić stworzenie (lub użycie) portfela
+      localStorage.removeItem('walletName');
+
       navigate('/models');
     }
   };
 
   const handleBackClick = () => {
-    setStep(1); // Powrót do kroku 1
+    setStep(1);
   };
-
-  // Używamy useEffect, aby zapisać wybrane waluty w localStorage przy każdej zmianie
-  useEffect(() => {
-    if (baseCurrency) {
-      localStorage.setItem('baseCurrency', baseCurrency);
-    }
-    if (alternativeCurrency) {
-      localStorage.setItem('alternativeCurrency', alternativeCurrency);
-    }
-  }, [baseCurrency, alternativeCurrency]);
 
   return (
     <div className="min-h-screen flex flex-col items-center text-white p-4">

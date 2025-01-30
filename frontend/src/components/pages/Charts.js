@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { Line } from "react-chartjs-2";
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from "chart.js";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+} from "chart.js";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -22,27 +31,22 @@ export default function Charts({ walletName }) {
           return;
         }
 
-        // 🔹 Pobieramy etykiety dat (bez godzin)
-        const labels = data.investments.map((investment) =>
-          new Date(investment.start_time).toISOString().split("T")[0]
+        // Etykiety dat (tylko yyyy-mm-dd)
+        const labels = data.investments.map((inv) =>
+          new Date(inv.start_time).toISOString().split("T")[0]
         );
 
-        // 🔹 Pobieramy wartości budżetu
-        const values = data.investments.map((investment) =>
-          parseFloat(investment.final_budget).toFixed(2)
-        );
+        // Wartości final_budget
+        const values = data.investments.map((inv) => parseFloat(inv.final_budget).toFixed(2));
 
-        // 🔹 Ustalamy walutę początkową i przewalutowanie
-        let currentCurrency = "USD";
+        // Kolorowanie punktów, w zależności od waluty (przykład)
         let colorArray = [];
-        let currencyLabels = [];
-
-        data.investments.forEach((investment, index) => {
-          if (investment.currency_conversion) {
-            currentCurrency = "PLN"; // Zmiana waluty po przewalutowaniu
+        data.investments.forEach((inv) => {
+          if (inv.currency_conversion) {
+            colorArray.push("red"); // np. PLN
+          } else {
+            colorArray.push("rgb(75, 192, 192)"); // np. USD
           }
-          colorArray.push(currentCurrency === "PLN" ? "red" : "rgb(75, 192, 192)");
-          currencyLabels.push(currentCurrency);
         });
 
         setChartData({
@@ -60,9 +64,7 @@ export default function Charts({ walletName }) {
           ],
         });
       })
-      .catch((error) => {
-        setError(error.message);
-      });
+      .catch((err) => setError(err.message));
   }, [walletName]);
 
   return (
@@ -71,22 +73,30 @@ export default function Charts({ walletName }) {
 
       {error ? (
         <p className="text-red-500">{error}</p>
-      ) : chartData && (
+      ) : chartData ? (
         <Line
           data={chartData}
           options={{
             responsive: true,
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
             scales: {
               y: {
                 ticks: {
-                  callback: function (value, index, values) {
-                    return `${value} ${index >= values.length - 1 ? "PLN" : "USD"}`;
+                  // Możesz wstawić symbol waluty, np.:
+                  callback: function (value) {
+                    return value + " ";
                   },
                 },
               },
             },
           }}
         />
+      ) : (
+        <p className="text-lg text-gray-300">Loading chart...</p>
       )}
     </div>
   );

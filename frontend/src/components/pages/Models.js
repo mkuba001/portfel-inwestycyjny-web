@@ -10,17 +10,72 @@ export default function Models() {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
+  // Po załadowaniu komponentu, wczytujemy waluty z localStorage
   useEffect(() => {
-    const storedBaseCurrency = localStorage.getItem("baseCurrency");
-    const storedAlternativeCurrency = localStorage.getItem("alternativeCurrency");
+    const storedBase = localStorage.getItem("baseCurrency");
+    const storedAlt = localStorage.getItem("alternativeCurrency");
 
-    if (!storedBaseCurrency || !storedAlternativeCurrency) {
+    if (!storedBase || !storedAlt) {
+      console.log("⚠️ Brak walut w localStorage! Przekierowanie na /forex-pair");
       navigate("/forex-pair");
     } else {
-      setBaseCurrency(storedBaseCurrency);
-      setAlternativeCurrency(storedAlternativeCurrency);
+      setBaseCurrency(storedBase);
+      setAlternativeCurrency(storedAlt);
     }
   }, [navigate]);
+
+  // Po ustawieniu walut, zapewniamy istnienie (lub tworzymy) portfel
+  useEffect(() => {
+    if (baseCurrency && alternativeCurrency) {
+      ensureWalletExists();
+    }
+    // eslint-disable-next-line
+  }, [baseCurrency, alternativeCurrency]);
+
+  // === FUNKCJA do tworzenia / sprawdzenia portfela ===
+  const ensureWalletExists = async () => {
+    let walletName = localStorage.getItem("walletName");
+
+    // [SCENARIUSZ B - DODANE] Sprawdzamy, czy forceNew jest "true"
+    const forceNew = localStorage.getItem("forceNew") === "true";
+
+    // Jeżeli nie ma walletName ALBO chcemy wymusić nowy, to POST /api/start_new_wallet
+    if (!walletName || forceNew) {
+      const requestData = {
+        base_currency: baseCurrency,
+        alternative_currency: alternativeCurrency,
+        force_new: forceNew
+      };
+
+      try {
+        console.log("🔹 Tworzymy (lub wymuszamy nowy) portfel:", requestData);
+        const response = await fetch("http://localhost:5000/api/start_new_wallet", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestData),
+        });
+
+        if (!response.ok) {
+          throw new Error("Nie udało się utworzyć / sprawdzić portfela!");
+        }
+
+        const data = await response.json();
+        console.log("✅ Odpowiedź serwera (wallet):", data);
+
+        if (data.wallet_name) {
+          localStorage.setItem("walletName", data.wallet_name);
+        } else {
+          throw new Error("Brak pola wallet_name w odpowiedzi serwera.");
+        }
+      } catch (err) {
+        console.error("❌ Błąd przy tworzeniu portfela:", err);
+        setError(err.message);
+      } finally {
+        // [SCENARIUSZ B - DODANE] Usuwamy forceNew po jednorazowym użyciu
+        localStorage.removeItem("forceNew");
+      }
+    }
+  };
 
   // Aktualizacja endDate na podstawie startDate
   const handleStartDateChange = (newStartDate) => {
@@ -31,44 +86,13 @@ export default function Models() {
     setEndDate(newEndDateObj.toISOString().split("T")[0]);
   };
 
-  // Tworzenie nowego portfela, jeśli nie istnieje lub po resecie
-  const ensureWalletExists = async () => {
-    let walletName = localStorage.getItem("walletName");
-
-    if (!walletName) {
-      const requestData = {
-        base_currency: baseCurrency,
-        alternative_currency: alternativeCurrency,
-      };
-
-      try {
-        const response = await fetch("http://localhost:5000/api/start_new_wallet", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(requestData),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to create a new wallet.");
-        }
-
-        const data = await response.json();
-        localStorage.setItem("walletName", data.wallet_name);
-        return data.wallet_name;
-      } catch (error) {
-        console.error("Error creating wallet:", error);
-        setError(error.message);
-        return null;
-      }
-    }
-
-    return walletName;
-  };
-
-  // Wykonanie predykcji
+  // Wywołujemy /api/predict
   const handlePrediction = async () => {
-    const walletName = await ensureWalletExists();
-    if (!walletName) return;
+    let walletName = localStorage.getItem("walletName");
+    if (!walletName) {
+      console.error("❌ Brak nazwy portfela w localStorage!");
+      return;
+    }
 
     const requestData = {
       base_currency: baseCurrency,
@@ -77,7 +101,7 @@ export default function Models() {
       prediction_date: endDate,
     };
 
-    console.log("🔹 Sending prediction request:", requestData);
+    console.log("🔹 Wysyłanie żądania predykcji:", requestData);
 
     fetch("http://localhost:5000/api/predict", {
       method: "POST",
@@ -86,15 +110,15 @@ export default function Models() {
     })
       .then((response) => {
         if (!response.ok) {
-          throw new Error("Failed to fetch prediction data.");
+          throw new Error("Nie udało się pobrać danych predykcji.");
         }
         return response.json();
       })
       .then((data) => {
-        console.log("🔹 Prediction response:", data);
+        console.log("✅ Odpowiedź predykcji:", data);
         setPredictionData(data);
 
-        // ✅ Zapisujemy dane do localStorage
+        // Zapis do localStorage
         localStorage.setItem("startDate", startDate);
         localStorage.setItem("endDate", endDate);
         localStorage.setItem("predictedClose", data.predicted_close);
@@ -102,9 +126,9 @@ export default function Models() {
 
         navigate("/prediction");
       })
-      .catch((error) => {
-        console.error("❌ Error fetching prediction data:", error);
-        setError(error.message);
+      .catch((err) => {
+        console.error("❌ Błąd przy pobieraniu danych predykcji:", err);
+        setError(err.message);
       });
   };
 
@@ -165,14 +189,6 @@ export default function Models() {
       </div>
 
       {error && <p className="text-lg text-red-500 mt-4">{error}</p>}
-
-      {predictionData && (
-        <div className="bg-gray-700 p-4 rounded-lg mt-4 text-white">
-          <h3 className="text-xl font-bold">Prediction Data:</h3>
-          <p><strong>Predicted Close:</strong> {predictionData.predicted_close}</p>
-          <p><strong>Investment Duration (Months):</strong> {predictionData.investment_duration_months}</p>
-        </div>
-      )}
     </div>
   );
 }

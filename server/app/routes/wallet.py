@@ -3,7 +3,9 @@ from app.db import db
 from app import app
 from flasgger import swag_from
 
-# 📌 Tworzenie nowego portfela inwestycyjnego
+#######################################################
+#                 1. START NEW WALLET
+#######################################################
 @app.route('/api/start_new_wallet', methods=['POST'])
 @swag_from({
     'tags': ['Wallet'],
@@ -17,7 +19,8 @@ from flasgger import swag_from
                 'type': 'object',
                 'properties': {
                     'base_currency': {'type': 'string', 'example': 'USD'},
-                    'alternative_currency': {'type': 'string', 'example': 'PLN'}
+                    'alternative_currency': {'type': 'string', 'example': 'PLN'},
+                    'force_new': {'type': 'boolean', 'example': False}
                 },
                 'required': ['base_currency', 'alternative_currency']
             }
@@ -30,29 +33,42 @@ from flasgger import swag_from
     }
 })
 def start_new_wallet():
-    try:
-        data = request.get_json()
-        base_currency = data.get('base_currency')
-        alternative_currency = data.get('alternative_currency')
+    data = request.get_json()
+    base_currency = data["base_currency"]
+    alt_currency = data["alternative_currency"]
+    force_new = data.get("force_new", False)
 
-        if not base_currency or not alternative_currency:
-            return jsonify({'message': 'Brak wymaganych danych'}), 400
+    # Szukamy istniejących portfeli
+    existing_wallets = sorted([
+        w for w in db.list_collection_names()
+        if w.startswith(f"{base_currency}_{alt_currency}_wallet_")
+    ])
+    print("DEBUG existing_wallets:", existing_wallets)
 
-        # 🔹 Dynamiczne tworzenie nowego portfela
-        existing_wallets = db.list_collection_names()
-        wallet_index = sum(1 for name in existing_wallets if name.startswith(f"{base_currency}_{alternative_currency}_wallet")) + 1
-        new_wallet_name = f"{base_currency}_{alternative_currency}_wallet_{wallet_index}"
-
-        # 🔹 Tworzenie kolekcji w bazie
+    if not existing_wallets:
+        # Tworzymy wallet_1
+        new_wallet_name = f"{base_currency}_{alt_currency}_wallet_1"
         db.create_collection(new_wallet_name)
+        return jsonify({"wallet_name": new_wallet_name}), 200
 
-        return jsonify({'message': 'Nowy portfel utworzony!', 'wallet_name': new_wallet_name}), 200
+    if force_new:
+        # Liczymy next index => parse last one
+        last_wallet = existing_wallets[-1]  # np. "USD_PLN_wallet_3"
+        # parse int
+        last_index = int(last_wallet.split("_")[-1])  # 3
+        next_wallet_index = last_index + 1            # 4
+        new_wallet_name = f"{base_currency}_{alt_currency}_wallet_{next_wallet_index}"
+        db.create_collection(new_wallet_name)
+        return jsonify({"wallet_name": new_wallet_name}), 200
+    else:
+        # Bez force_new, używamy ostatniego
+        last_wallet = existing_wallets[-1]
+        return jsonify({"wallet_name": last_wallet}), 200
 
-    except Exception as e:
-        return jsonify({'message': f'Błąd serwera: {str(e)}'}), 500
 
-
-# 📌 Pobranie listy wszystkich portfeli inwestycyjnych
+#######################################################
+#                    2. GET WALLETS
+#######################################################
 @app.route('/api/get_wallets', methods=['GET'])
 @swag_from({
     'tags': ['Wallet'],
@@ -72,7 +88,9 @@ def get_wallets():
         return jsonify({'message': f'Błąd serwera: {str(e)}'}), 500
 
 
-# 📌 Pobranie danych konkretnego portfela inwestycyjnego
+#######################################################
+#                  3. GET WALLET DATA
+#######################################################
 @app.route('/api/get_wallet_data/<wallet_name>', methods=['GET'])
 @swag_from({
     'tags': ['Wallet'],
@@ -104,11 +122,13 @@ def get_wallet_data(wallet_name):
         return jsonify({'message': f'Błąd serwera: {str(e)}'}), 500
 
 
-# 📌 Resetowanie portfela (usunięcie wszystkich inwestycji)
+#######################################################
+#               4. RESET WALLET (poprawka)
+#######################################################
 @app.route('/api/reset_wallet/<wallet_name>', methods=['DELETE'])
 @swag_from({
     'tags': ['Wallet'],
-    'description': 'Usuwa wszystkie inwestycje z podanego portfela.',
+    'description': 'Usuwa wszystkie inwestycje z podanego portfela (ale zostawia pustą kolekcję).',
     'parameters': [
         {
             'name': 'wallet_name',
@@ -129,8 +149,10 @@ def reset_wallet(wallet_name):
         if wallet_name not in db.list_collection_names():
             return jsonify({'message': 'Portfel nie istnieje'}), 404
 
-        db[wallet_name].drop()  # 🟢 Usuwamy kolekcję portfela
-        return jsonify({'message': f'Portfel {wallet_name} został zresetowany!'}), 200
+        # ZAMIENIAMY drop() NA delete_many({}), aby kolekcja została, ale pusta
+        db[wallet_name].delete_many({})
+
+        return jsonify({'message': f'Portfel {wallet_name} został wyczyszczony (pusta kolekcja)!'}), 200
 
     except Exception as e:
         return jsonify({'message': f'Błąd serwera: {str(e)}'}), 500

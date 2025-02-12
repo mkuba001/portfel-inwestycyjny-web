@@ -1,20 +1,23 @@
-# # app/routes/prediction.py
+
 # from flask import request, jsonify
 # from datetime import datetime
 # from subprocess import check_output, CalledProcessError
 # import json
 # from app import app
+# import pytz
 # from app.db import db
 # from flasgger import swag_from
 # from bson import ObjectId
 # from dateutil.relativedelta import relativedelta
 
-
+# def calculate_months(start_date, prediction_date):
+#     rd = relativedelta(prediction_date, start_date)
+#     return rd.years * 12 + rd.months + (1 if rd.days >= 15 else 0)  # Zaokrąglanie w górę, jeśli przekroczono połowę miesiąca
 
 # @app.route('/api/predict', methods=['POST'])
 # @swag_from({
 #     'tags': ['Predictions'],
-#     'description': 'Wykonaj prognozę na podstawie historycznych danych i modelu LSTM.',
+#     'description': 'Wykonuje prognozę inwestycji i zapisuje ją w kolekcji prediction_forex.',
 #     'parameters': [
 #         {
 #             'name': 'body',
@@ -23,399 +26,243 @@
 #             'schema': {
 #                 'type': 'object',
 #                 'properties': {
-#                     'base_currency': {
-#                         'type': 'string',
-#                         'example': 'USD',
-#                         'description': 'Waluta bazowa do prognozy'
-#                     },
-#                     'alternative_currency': {
-#                         'type': 'string',
-#                         'example': 'EUR',
-#                         'description': 'Alternatywna waluta do prognozy'
-#                     },
-#                     'start_date': {
-#                         'type': 'string',
-#                         'format': 'date',
-#                         'example': '2024-01-10',
-#                         'description': 'Data początkowa do prognozy'
-#                     },
-#                     'prediction_date': {
-#                         'type': 'string',
-#                         'format': 'date',
-#                         'example': '2024-02-10',
-#                         'description': 'Data końcowa do prognozy'
-#                     }
+#                     'base_currency': {'type': 'string', 'example': 'USD'},
+#                     'alternative_currency': {'type': 'string', 'example': 'PLN'},
+#                     'start_date': {'type': 'string', 'format': 'date', 'example': '2024-01-10'},
+#                     'prediction_date': {'type': 'string', 'format': 'date', 'example': '2024-02-10'}
 #                 },
 #                 'required': ['base_currency', 'alternative_currency', 'start_date', 'prediction_date']
 #             }
 #         }
 #     ],
 #     'responses': {
-#         201: {
-#             'description': 'Prognoza została pomyślnie dodana do bazy danych',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'message': {'type': 'string', 'example': 'Prognoza została pomyślnie dodana do bazy danych'},
-#                     'predicted_close': {'type': 'number', 'example': 1.09114}
-#                 }
-#             }
-#         },
-#         400: {
-#             'description': 'Błąd w danych wejściowych',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'message': {'type': 'string', 'example': 'Brak wymaganych danych!'}
-#                 }
-#             }
-#         },
-#         500: {
-#             'description': 'Błąd serwera podczas przetwarzania danych',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'message': {'type': 'string', 'example': 'Błąd podczas uruchamiania programu: <szczegóły błędu>'}
-#                 }
-#             }
-#         }
+#         201: {'description': 'Prognoza dodana do bazy danych'},
+#         400: {'description': 'Błąd w danych wejściowych'},
+#         500: {'description': 'Błąd serwera'}
 #     }
 # })
 # def prediction():
-#     data = request.get_json()
-#     base_currency = data.get('base_currency')
-#     alternative_currency = data.get('alternative_currency')
-#     start_date = data.get('start_date')
-#     prediction_date = data.get('prediction_date')
-    
-#     # Walidacja danych wejściowych
-#     if not all([base_currency, alternative_currency, start_date, prediction_date]):
-#         return jsonify({'message': 'Brak wymaganych danych!'}), 400
-    
-#     try:
-#         # Konwersja dat
-#         start_date = datetime.strptime(start_date, '%Y-%m-%d')
-#         prediction_date = datetime.strptime(prediction_date, '%Y-%m-%d')
-#     except ValueError:
-#         return jsonify({'message': 'Błędny format daty! Użyj formatu: YYYY-MM-DD'}), 400
+#     print("🔹 Otrzymano żądanie POST na /api/predict")
 
-#     try:
-#         # Uruchomienie skryptu jako subprocess z argumentami
-#         result = check_output([
-#             'python', r'C:\Users\Kuba\Desktop\STUDIA\mgr\portfel-inwestycyjny\web\server\app\models\test.py',
-#             '--start_date', start_date.strftime('%Y-%m-%d'),
-#             '--prediction_date', prediction_date.strftime('%Y-%m-%d')
-#         ])
-        
-#         # Przetworzenie wyniku JSON
-#         result_data = json.loads(result)
-#         predicted_close = result_data.get('predicted_close')
-
-#         if predicted_close is None:
-#             return jsonify({'message': 'Nie udało się uzyskać prognozy'}), 500
-        
-#         # Zapisanie wyniku do bazy danych
-#         db.predictions.insert_one({
-#             'base_currency': base_currency,
-#             'alternative_currency': alternative_currency,
-#             'start_date': start_date,
-#             'prediction_date': prediction_date,
-#             'predicted_close': predicted_close
-#         })
-        
-#         return jsonify({
-#             'message': 'Prognoza została pomyślnie dodana do bazy danych',
-#             'predicted_close': predicted_close
-#         }), 201
-    
-#     except CalledProcessError as e:
-#         return jsonify({'message': f'Błąd podczas uruchamiania programu: {e}'}), 500
-
-
-
-# @app.route('/api/latest_prediction', methods=['GET'])
-# @swag_from({
-#     'tags': ['Predictions'],
-#     'description': 'Pobierz najnowszą predykcję zapisaną w bazie danych.',
-#     'responses': {
-#         200: {
-#             'description': 'Najnowsza predykcja',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     '_id': {'type': 'string', 'description': 'ID predykcji'},
-#                     'base_currency': {'type': 'string', 'description': 'Waluta bazowa'},
-#                     'alternative_currency': {'type': 'string', 'description': 'Alternatywna waluta'},
-#                     'start_date': {'type': 'string', 'format': 'date', 'description': 'Data początkowa'},
-#                     'prediction_date': {'type': 'string', 'format': 'date', 'description': 'Data predykcji'},
-#                     'predicted_close': {'type': 'number', 'description': 'Prognozowana wartość zamknięcia'}
-#                 }
-#             }
-#         },
-#         404: {
-#             'description': 'Brak dostępnych predykcji'
-#         }
-#     }
-# })
-
-
-# def get_latest_prediction():
-#     try:
-#         # Pobieranie ostatnio dodanego wpisu na podstawie _id
-#         latest_prediction = db.predictions.find().sort('_id', -1).limit(1)
-#         latest_prediction = list(latest_prediction)  # Konwersja na listę
-
-#         if latest_prediction:
-#             latest_prediction = latest_prediction[0]  # Pobranie pierwszego dokumentu z listy
-#             # Konwersja ObjectId na string do serializacji JSON
-#             latest_prediction['_id'] = str(latest_prediction['_id'])
-#             return jsonify(latest_prediction), 200
-#         else:
-#             return jsonify({'message': 'No predictions found in the database.'}), 404
-
-#     except Exception as e:
-#         return jsonify({'message': f'Error fetching latest prediction: {str(e)}'}), 500
-
-
-from flask import request, jsonify
-from datetime import datetime
-from subprocess import check_output, CalledProcessError
-import json
-from app import app
-import pytz
-from app.db import db
-from flasgger import swag_from
-from bson import ObjectId
-from dateutil.relativedelta import relativedelta
-
-def calculate_months(start_date, prediction_date):
-    rd = relativedelta(prediction_date, start_date)
-    return rd.years * 12 + rd.months + (1 if rd.days >= 15 else 0)  # Zaokrąglanie w górę, jeśli przekroczono połowę miesiąca
-
-@app.route('/api/predict', methods=['POST'])
-@swag_from({
-    'tags': ['Predictions'],
-    'description': 'Wykonuje prognozę inwestycji i zapisuje ją w odpowiednim portfelu.',
-    'parameters': [
-        {
-            'name': 'body',
-            'in': 'body',
-            'required': True,
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'base_currency': {'type': 'string', 'example': 'USD'},
-                    'alternative_currency': {'type': 'string', 'example': 'PLN'},
-                    'start_date': {'type': 'string', 'format': 'date', 'example': '2024-01-10'},
-                    'prediction_date': {'type': 'string', 'format': 'date', 'example': '2024-02-10'}
-                },
-                'required': ['base_currency', 'alternative_currency', 'start_date', 'prediction_date']
-            }
-        }
-    ],
-    'responses': {
-        201: {'description': 'Prognoza dodana do bazy danych'},
-        400: {'description': 'Błąd w danych wejściowych'},
-        500: {'description': 'Błąd serwera'}
-    }
-})
-def prediction():
-    print("🔹 Otrzymano żądanie POST na /api/predict")
-
-    # 📌 Pobranie danych z requesta
-    data = request.get_json()
-    base_currency = data.get('base_currency')
-    alternative_currency = data.get('alternative_currency')
-    start_date_str = data.get('start_date')
-    prediction_date_str = data.get('prediction_date')
-
-    # 📌 Walidacja danych wejściowych
-    if not all([base_currency, alternative_currency, start_date_str, prediction_date_str]):
-        return jsonify({'message': 'Brak wymaganych danych!'}), 400
-
-    try:
-        # 📌 Konwersja dat
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-        prediction_date = datetime.strptime(prediction_date_str, '%Y-%m-%d')
-
-        if prediction_date <= start_date:
-            return jsonify({'message': 'Data predykcji musi być późniejsza niż data początkowa!'}), 400
-
-        # 📌 Obliczanie liczby miesięcy inwestycji
-        investment_months = calculate_months(start_date, prediction_date)
-    except ValueError:
-        return jsonify({'message': 'Błędny format daty! Użyj formatu: YYYY-MM-DD'}), 400
-
-    try:
-        # 📌 Symulowana predykcja modelu LSTM (tutaj podmień na rzeczywiste wartości)
-        predicted_close = round(1.09114, 5)  # 🔹 Zaokrąglenie do 5 miejsc po przecinku
-
-        # 📌 Tworzenie nazwy portfela dynamicznie
-        existing_wallets = db.list_collection_names()
-        wallet_index = sum(1 for name in existing_wallets if name.startswith(f"{base_currency}_{alternative_currency}_wallet")) + 1
-        wallet_name = f"{base_currency}_{alternative_currency}_wallet_{wallet_index}"
-
-        # 📌 Sprawdzenie, czy portfel już istnieje
-        if wallet_name not in db.list_collection_names():
-            db.create_collection(wallet_name)
-
-        # 📌 Tworzenie dokumentu do zapisania
-        document = {
-            'base_currency': base_currency,
-            'alternative_currency': alternative_currency,
-            'start_date': start_date,
-            'prediction_date': prediction_date,
-            'predicted_close': predicted_close,
-            'investment_duration_months': investment_months,
-            'timestamp': datetime.utcnow()
-        }
-
-        # 📌 Zapis do bazy danych w odpowiednim portfelu
-        db[wallet_name].insert_one(document)
-
-        return jsonify({
-            'message': 'Prognoza została pomyślnie dodana do bazy danych',
-            'wallet_name': wallet_name,
-            'predicted_close': predicted_close,
-            'investment_duration_months': investment_months
-        }), 201
-
-    except Exception as e:
-        return jsonify({'message': f'Błąd podczas przetwarzania danych: {str(e)}'}), 500
-
-
-
-
-
-
-
-# @app.route('/api/predict', methods=['POST'])
-# @swag_from({
-#     'tags': ['Predictions'],
-#     'description': 'Wykonaj prognozę na podstawie historycznych danych i modelu LSTM.',
-#     'parameters': [
-#         {
-#             'name': 'body',
-#             'in': 'body',
-#             'required': True,
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'base_currency': {
-#                         'type': 'string',
-#                         'example': 'USD',
-#                         'description': 'Waluta bazowa do prognozy'
-#                     },
-#                     'alternative_currency': {
-#                         'type': 'string',
-#                         'example': 'EUR',
-#                         'description': 'Alternatywna waluta do prognozy'
-#                     },
-#                     'start_date': {
-#                         'type': 'string',
-#                         'format': 'date',
-#                         'example': '2024-01-10',
-#                         'description': 'Data początkowa do prognozy'
-#                     },
-#                     'prediction_date': {
-#                         'type': 'string',
-#                         'format': 'date',
-#                         'example': '2024-02-10',
-#                         'description': 'Data końcowa do prognozy'
-#                     }
-#                 },
-#                 'required': ['base_currency', 'alternative_currency', 'start_date', 'prediction_date']
-#             }
-#         }
-#     ],
-#     'responses': {
-#         201: {
-#             'description': 'Prognoza została pomyślnie dodana do bazy danych',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'message': {'type': 'string', 'example': 'Prognoza została pomyślnie dodana do bazy danych'},
-#                     'predicted_close': {'type': 'number', 'example': 1.09114},
-#                     'investment_duration_months': {'type': 'integer', 'example': 1}
-#                 }
-#             }
-#         },
-#         400: {
-#             'description': 'Błąd w danych wejściowych',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'message': {'type': 'string', 'example': 'Brak wymaganych danych!'}
-#                 }
-#             }
-#         },
-#         500: {
-#             'description': 'Błąd serwera podczas przetwarzania danych',
-#             'schema': {
-#                 'type': 'object',
-#                 'properties': {
-#                     'message': {'type': 'string', 'example': 'Błąd podczas uruchamiania programu: <szczegóły błędu>'}
-#                 }
-#             }
-#         }
-#     }
-# })
-# def prediction():
+#     # 📌 Pobranie danych z requesta
 #     data = request.get_json()
 #     base_currency = data.get('base_currency')
 #     alternative_currency = data.get('alternative_currency')
 #     start_date_str = data.get('start_date')
 #     prediction_date_str = data.get('prediction_date')
-    
-#     # Walidacja danych wejściowych
+
+#     # 📌 Walidacja danych wejściowych
 #     if not all([base_currency, alternative_currency, start_date_str, prediction_date_str]):
 #         return jsonify({'message': 'Brak wymaganych danych!'}), 400
-    
+
 #     try:
-#         # Konwersja dat
+#         # 📌 Konwersja dat
 #         start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
 #         prediction_date = datetime.strptime(prediction_date_str, '%Y-%m-%d')
-        
+
 #         if prediction_date <= start_date:
 #             return jsonify({'message': 'Data predykcji musi być późniejsza niż data początkowa!'}), 400
-        
-#         # Obliczanie liczby miesięcy inwestycji
+
+#         # 📌 Obliczanie liczby miesięcy inwestycji
 #         investment_months = calculate_months(start_date, prediction_date)
-        
 #     except ValueError:
 #         return jsonify({'message': 'Błędny format daty! Użyj formatu: YYYY-MM-DD'}), 400
 
 #     try:
-#         # Uruchomienie skryptu jako subprocess z argumentami
-#         result = check_output([
-#             'python', r'C:\Users\Kuba\Desktop\STUDIA\mgr\portfel-inwestycyjny\web\server\app\models\test.py',
-#             '--start_date', start_date.strftime('%Y-%m-%d'),
-#             '--prediction_date', prediction_date.strftime('%Y-%m-%d')
-#         ])
-        
-#         # Przetworzenie wyniku JSON
-#         result_data = json.loads(result)
-#         predicted_close = result_data.get('predicted_close')
+#         # 📌 Symulowana predykcja modelu LSTM (tutaj podmień na rzeczywiste wartości)
+#         predicted_close = round(1.09114, 5)  # 🔹 Zaokrąglenie do 5 miejsc po przecinku
 
-#         if predicted_close is None:
-#             return jsonify({'message': 'Nie udało się uzyskać prognozy'}), 500
-        
-#         # Zapisanie wyniku do bazy danych
-#         db.predictions.insert_one({
+#         # ✅ Sprawdzenie, czy taka predykcja już istnieje
+#         existing_prediction = db.prediction_forex.find_one({
+#             'base_currency': base_currency,
+#             'alternative_currency': alternative_currency,
+#             'start_date': start_date,
+#             'prediction_date': prediction_date
+#         })
+
+#         if existing_prediction:
+#             return jsonify({
+#                 'message': 'Prognoza już istnieje, nie została dodana ponownie',
+#                 'predicted_close': existing_prediction['predicted_close'],
+#                 'investment_duration_months': existing_prediction['investment_duration_months']
+#             }), 200
+
+#         # 📌 Tworzenie dokumentu do zapisania
+#         document = {
 #             'base_currency': base_currency,
 #             'alternative_currency': alternative_currency,
 #             'start_date': start_date,
 #             'prediction_date': prediction_date,
 #             'predicted_close': predicted_close,
-#             'investment_duration_months': investment_months  # Nowe pole
-#         })
-        
+#             'investment_duration_months': investment_months,
+#             'timestamp': datetime.utcnow()
+#         }
+
+#         # 📌 Zapis do bazy danych w kolekcji prediction_forex
+#         db.prediction_forex.insert_one(document)
+
 #         return jsonify({
-#             'message': 'Prognoza została pomyślnie dodana do bazy danych',
+#             'message': 'Prognoza została pomyślnie dodana do prediction_forex',
 #             'predicted_close': predicted_close,
-#             'investment_duration_months': investment_months  # Zwracanie liczby miesięcy
+#             'investment_duration_months': investment_months
 #         }), 201
-    
-#     except CalledProcessError as e:
-#         return jsonify({'message': f'Błąd podczas uruchamiania programu: {e}'}), 500
-    
+
+#     except Exception as e:
+#         return jsonify({'message': f'Błąd podczas przetwarzania danych: {str(e)}'}), 500
+
+from flask import request, jsonify
+from datetime import datetime
+import subprocess
+import shlex
+import json
+from app import app
+from app.db import db
+from dateutil.relativedelta import relativedelta
+
+def calculate_months(start_date, prediction_date):
+    rd = relativedelta(prediction_date, start_date)
+    return rd.years * 12 + rd.months + (1 if rd.days >= 15 else 0)
+
+@app.route('/api/predict', methods=['POST'])
+def prediction():
+    print("🔹 Otrzymano żądanie POST na /api/predict")
+
+    # 1. Debug: wypisanie JSON-a wejściowego
+    data = request.get_json()
+    print(f"[DEBUG] Otrzymane dane (JSON): {data}")
+
+    base_currency = data.get('base_currency')
+    alternative_currency = data.get('alternative_currency')
+    start_date_str = data.get('start_date')
+    prediction_date_str = data.get('prediction_date')
+
+    # Walidacja
+    if not all([base_currency, alternative_currency, start_date_str, prediction_date_str]):
+        print("[DEBUG] Brak wymaganych danych w JSON-ie")
+        return jsonify({'message': 'Brak wymaganych danych!'}), 400
+
+    try:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        prediction_date = datetime.strptime(prediction_date_str, '%Y-%m-%d')
+        if prediction_date <= start_date:
+            print("[DEBUG] Data predykcji <= data początkowa")
+            return jsonify({'message': 'Data predykcji musi być późniejsza niż data początkowa!'}), 400
+
+        investment_months = calculate_months(start_date, prediction_date)
+    except ValueError:
+        print("[DEBUG] Błędny format daty!")
+        return jsonify({'message': 'Błędny format daty! Użyj formatu YYYY-MM-DD'}), 400
+
+    print(f"[DEBUG] obliczone investment_months = {investment_months}")
+
+    # Ustalanie row_count
+    if investment_months <= 2:
+        row_count = 60
+    else:
+        row_count = 2 * investment_months * 30
+    print(f"[DEBUG] row_count = {row_count}")
+
+    # 2. Subproces z parametrami
+    cmd = f"python C:/Users/Kuba/Desktop/STUDIA/mgr/portfel-inwestycyjny/models/pred2.py --start_date={start_date_str} --prediction_date={prediction_date_str}"
+    print(f"[DEBUG] Uruchamiam subproces z cmd: {cmd}")
+
+    try:
+        result = subprocess.run(
+            shlex.split(cmd),
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        # Debug zwróconego kodu i wyjść
+        print(f"[DEBUG] Subprocess returncode: {result.returncode}")
+        print(f"[DEBUG] Subprocess STDOUT:\n{result.stdout}")
+        print(f"[DEBUG] Subprocess STDERR:\n{result.stderr}")
+
+        output_str = result.stdout.strip()
+        predictions_all = json.loads(output_str)
+
+        print("[DEBUG] Odczytano JSON z subprocesu (predictions_all)")
+
+    except subprocess.CalledProcessError as e:
+        print(f"[Błąd subprocesu] returncode={e.returncode}, stdout={e.output}, stderr={e.stderr}")
+        return jsonify({'message': f'Błąd subprocesu: {str(e)}'}), 500
+    except Exception as e:
+        print(f"[DEBUG] Błąd odczytu JSON: {e}")
+        return jsonify({'message': f'Błąd odczytu JSON z subprocesu: {str(e)}'}), 500
+
+    # 3. Pomocnicza funkcja do wzięcia ostatniej predykcji
+    def get_last_pred(key_name):
+        arr = predictions_all.get(key_name, [])
+        if arr:
+            return arr[-1].get("Predicted", None)
+        return None
+
+    final_xgb  = get_last_pred("predictions_xgboost")
+    final_rf   = get_last_pred("predictions_rf")
+    final_lstm = get_last_pred("predictions_lstm")
+    final_ari  = get_last_pred("predictions_arima")
+
+    # Debug finalnych wartości
+    print(f"[DEBUG] final_xgb={final_xgb}, final_rf={final_rf}, final_lstm={final_lstm}, final_arima={final_ari}")
+
+    # 4. Zapis do bazy
+    doc = {
+        'base_currency': base_currency,
+        'alternative_currency': alternative_currency,
+        'start_date': start_date,
+        'prediction_date': prediction_date,
+        'final_xgb': final_xgb,
+        'final_rf': final_rf,
+        'final_lstm': final_lstm,
+        'final_arima': final_ari,
+        'investment_duration_months': investment_months,
+        'timestamp': datetime.utcnow()
+    }
+    db.prediction_forex.insert_one(doc)
+    print("[DEBUG] Zapisano dokument w bazie prediction_forex")
+
+    # 5. Zwracamy do frontu
+    return jsonify({
+        'message': 'Prognoza zapisana w bazie (ostatnie wartości). Poniżej pełen przebieg predykcji do wykresu.',
+        'final_xgb': final_xgb,
+        'final_rf': final_rf,
+        'final_lstm': final_lstm,
+        'final_arima': final_ari,
+        'predictions': predictions_all,
+        'investment_duration_months': investment_months
+    }), 201
+
+
+@app.route('/api/historical-data', methods=['GET'])
+def historical_data():
+    # Pobieramy parametry zapytania
+    base = request.args.get("base")
+    alt = request.args.get("alt")
+    start_date_str = request.args.get("start_date")
+    end_date_str = request.args.get("end_date")
+
+    # Sprawdzamy, czy wszystkie wymagane parametry są podane
+    if not base or not alt or not start_date_str or not end_date_str:
+        return jsonify({"message": "Missing required query parameters: base, alt, start_date, end_date"}), 400
+
+    try:
+        # Konwertujemy daty do obiektów datetime
+        start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+        end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+    except Exception as e:
+        return jsonify({"message": "Invalid date format. Use YYYY-MM-DD."}), 400
+
+    # Budujemy nazwę kolekcji – zakładamy, że dane historyczne zapisane są w kolekcji o nazwie base+alt, np. "USDPLN"
+    collection_name = base + alt
+
+    try:
+        # Pobieramy dokumenty, które mają pole "Date" w zadanym przedziale
+        # Zakładamy, że pole "Date" jest zapisane jako obiekt datetime w bazie lub jako ciąg znaków w formacie "YYYY-MM-DD"
+        historical_docs = list(db[collection_name].find(
+            {"Date": {"$gte": start_date, "$lte": end_date}},
+            {"_id": 0}  # wykluczamy pole _id
+        ))
+    except Exception as e:
+        return jsonify({"message": f"Error fetching historical data: {str(e)}"}), 500
+
+    return jsonify({"historical": historical_docs}), 200

@@ -1,5 +1,3 @@
-# app/routes/db_test.py
-
 from flask import jsonify
 from flasgger import swag_from
 from app.db import db
@@ -34,7 +32,6 @@ from app import app
 })
 def connection_test():
     try:
-        # Testowe zapytanie do kolekcji 'predictions' - liczymy dokumenty
         document_count = db.predictions.count_documents({})
         return jsonify({
             'message': 'Połączenie działa poprawnie!',

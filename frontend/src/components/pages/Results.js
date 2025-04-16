@@ -28,7 +28,6 @@ export default function Results() {
       .then((data) => {
         if (data.investments && data.investments.length > 0) {
           setInvestments(data.investments);
-          // Rozdzielamy inwestycje na normalne, reverse oraz deposit na podstawie pola "scenario"
           const normalInvestments = data.investments.filter(
             (investment) =>
               investment.scenario &&
@@ -57,7 +56,6 @@ export default function Results() {
               reverseInvestments[reverseInvestments.length - 1].final_budget
             );
           }
-          // Dodajemy wynik symulacji lokaty do localStorage
           if (depositInvestments.length > 0) {
             localStorage.setItem(
               "lastDepositResult",
@@ -86,7 +84,6 @@ export default function Results() {
       if (!response.ok) {
         throw new Error("Failed to reset the portfolio.");
       }
-      // Usuwamy zapisy z localStorage
       localStorage.removeItem("lastFinalBudgetNormal");
       localStorage.removeItem("lastFinalBudgetReverse");
       localStorage.removeItem("lastDepositResult");
@@ -107,7 +104,6 @@ export default function Results() {
     navigate("/forex-pair");
   };
 
-  // Oddzielamy inwestycje forex od symulacji lokaty
   const depositInvestments = investments.filter(
     (investment) =>
       investment.scenario && investment.scenario.toLowerCase() === "deposit"

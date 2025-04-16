@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-// Importy ChartJS i react-chartjs-2 (opcjonalnie – wykres)
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -14,17 +13,14 @@ import {
   Legend,
 } from "chart.js";
 
-// Rejestrujemy komponenty ChartJS
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 export default function Prediction() {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
 
-  // Dane predykcji odczytane z localStorage
   const [prediction, setPrediction] = useState(null);
 
-  // Pola formularza – domyślne wartości (mogą być nadpisane danymi z localStorage)
   const [normalInitialInvestment, setNormalInitialInvestment] = useState("10000");
   const [reverseInitialInvestment, setReverseInitialInvestment] = useState("8000");
   const [interestRate, setInterestRate] = useState("10");
@@ -35,22 +31,18 @@ export default function Prediction() {
   const [bothSides, setBothSides] = useState(false);
   const [walletName, setWalletName] = useState(null);
 
-  // Nowe pola dla symulacji lokaty
   const [depositBudget, setDepositBudget] = useState("10000");
   const [depositAnnualRate, setDepositAnnualRate] = useState("4.0");
 
-  // Finalne wartości modeli i dodatkowe dane predykcji (np. do wykresu)
   const [finalXgb, setFinalXgb] = useState(null);
   const [finalRf, setFinalRf] = useState(null);
   const [finalLstm, setFinalLstm] = useState(null);
   const [finalArima, setFinalArima] = useState(null);
   const [predictionsData, setPredictionsData] = useState(null);
 
-  // Final budżety dla normalnej i odwrotnej inwestycji
   const [finalBudgetNormal, setFinalBudgetNormal] = useState(null);
   const [finalBudgetReverse, setFinalBudgetReverse] = useState(null);
 
-  // Helper: łączenie danych z poszczególnych modeli do wykresu (ChartJS)
   const getCombinedChartData = () => {
     if (
       predictionsData &&
@@ -116,7 +108,6 @@ export default function Prediction() {
   };
 
   useEffect(() => {
-    // Odczyt danych z localStorage
     const baseCurrency = localStorage.getItem("baseCurrency");
     const alternativeCurrency = localStorage.getItem("alternativeCurrency");
     const startDate = localStorage.getItem("startDate");
@@ -125,13 +116,11 @@ export default function Prediction() {
     const investmentDuration = localStorage.getItem("investmentDurationMonths");
     const storedWalletName = localStorage.getItem("walletName");
 
-    // Odczyt finalnych prognoz modeli
     const xgb = localStorage.getItem("finalXgb");
     const rf = localStorage.getItem("finalRf");
     const lstm = localStorage.getItem("finalLstm");
     const arima = localStorage.getItem("finalArima");
 
-    // Odczyt pełnego obiektu predykcji (JSON)
     const predsStr = localStorage.getItem("predictions");
     let predsObj = null;
     if (predsStr) {
@@ -142,8 +131,6 @@ export default function Prediction() {
       }
     }
 
-    // Odczyt final budżetów – klucze "lastFinalBudgetNormal", "lastFinalBudgetReverse"
-    // oraz wynik lokaty "lastDepositResult"
     const storedFinalBudgetNormal = localStorage.getItem("lastFinalBudgetNormal");
     const storedFinalBudgetReverse = localStorage.getItem("lastFinalBudgetReverse");
     const storedDepositResult = localStorage.getItem("lastDepositResult");
@@ -173,7 +160,6 @@ export default function Prediction() {
     setFinalBudgetNormal(storedFinalBudgetNormal || null);
     setFinalBudgetReverse(storedFinalBudgetReverse || null);
 
-    // Ustawiamy wartości pól formularza, jeśli są zapisane w localStorage
     if (storedFinalBudgetNormal) {
       setNormalInitialInvestment(storedFinalBudgetNormal);
     }
@@ -226,7 +212,6 @@ export default function Prediction() {
       })
       .then((data) => {
         console.log("Server response (calculate-forex-wallet):", data);
-        // Zapisujemy finalne budżety – analogicznie jak dla forex
         if (data.final_xgb !== undefined) {
           localStorage.setItem("lastFinalBudgetNormal", data.final_xgb);
           setFinalBudgetNormal(data.final_xgb);
@@ -244,7 +229,6 @@ export default function Prediction() {
         if (data.predictions) {
           localStorage.setItem("predictions", JSON.stringify(data.predictions));
         }
-        // Zapisujemy również wynik symulacji lokaty
         if (data.deposit_result && data.deposit_result.final_deposit_value !== undefined) {
           localStorage.setItem("lastDepositResult", data.deposit_result.final_deposit_value);
         }
@@ -263,7 +247,6 @@ export default function Prediction() {
       {error && <p className="text-lg text-red-500">{error}</p>}
 
       <div className="flex w-full max-w-4xl gap-8">
-        {/* LEFT - Informacje o predykcji i finalne wyniki */}
         <div className="w-1/3 bg-gray-800 p-6 rounded-lg shadow-lg overflow-hidden">
           <h2 className="text-3xl font-bold mb-4">Prediction Results</h2>
           <div className="text-lg text-gray-300">
@@ -311,7 +294,6 @@ export default function Prediction() {
           </div>
         </div>
 
-        {/* RIGHT - Investment Form */}
         <div className="w-2/3 bg-gray-800 p-6 rounded-lg shadow-lg">
           <h2 className="text-3xl font-bold mb-4">Investment Form</h2>
           <div className="mb-4">
@@ -368,7 +350,6 @@ export default function Prediction() {
               className="w-full p-2 bg-gray-700 text-white rounded-lg"
             />
           </div>
-          {/* Pola dla symulacji lokaty */}
           <div className="mb-4">
             <label className="block text-gray-300 mb-2">Deposit Budget:</label>
             <input
@@ -419,7 +400,6 @@ export default function Prediction() {
         </div>
       </div>
 
-      {/* Chart Section (opcjonalnie) */}
       <div className="bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-4xl mt-8">
         <h2 className="text-3xl font-bold mb-4">Prediction Chart</h2>
         {combinedChartData && combinedChartData.length > 0 ? (

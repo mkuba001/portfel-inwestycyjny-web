@@ -30,13 +30,8 @@ export default function ForexPair() {
     if (step === 1) {
       setStep(2);
     } else {
-      // Gdy obie waluty wybrane, przechodzimy do /models
-      // Zapisujemy do localStorage, żeby Models.js mogło je odczytać
       localStorage.setItem('baseCurrency', baseCurrency);
       localStorage.setItem('alternativeCurrency', alternativeCurrency);
-
-      // Czyścimy też ewentualny stary walletName, żeby w Models.js
-      // wymusić stworzenie (lub użycie) portfela
       localStorage.removeItem('walletName');
 
       navigate('/models');

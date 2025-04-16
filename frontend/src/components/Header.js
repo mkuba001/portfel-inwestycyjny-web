@@ -1,11 +1,11 @@
-import { useNavigate } from 'react-router-dom';  // Import useNavigate
+import { useNavigate } from 'react-router-dom'; 
 import logo from '../images/logo.png';
 
 export default function Header() {
-  const navigate = useNavigate();  // Użycie useNavigate
+  const navigate = useNavigate(); 
 
   const handleLogoClick = () => {
-    navigate('/');  // Przekierowanie do strony głównej
+    navigate('/');  
   };
 
   return (
@@ -15,7 +15,7 @@ export default function Header() {
           src={logo}
           alt="logo"
           className="w-24 h-24 object-contain shadow-lg cursor-pointer"
-          onClick={handleLogoClick}  // Przekierowanie po kliknięciu logo
+          onClick={handleLogoClick} 
         />
         <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500 mt-4 shadow-lg transition-transform duration-300 hover:scale-105">
           Forex & AI Investment

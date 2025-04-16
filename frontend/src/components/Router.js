@@ -1,7 +1,6 @@
 import Header from './Header'
 import Home from './pages/Home';
 import ForexPair from './pages/ForexPair';
-//import { BrowserRouter, Routes, Route, Outlet} from 'react-router-dom';
 import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
 import Models from './pages/Models';
 import Prediction from './pages/Prediction';

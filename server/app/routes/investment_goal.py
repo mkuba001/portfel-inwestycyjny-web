@@ -4,9 +4,7 @@ from app.db import db
 from app import app
 from flasgger import swag_from
 
-#######################################################
-#           1. CALCULATE FOREX WALLET & DEPOSIT
-#######################################################
+
 @app.route('/api/calculate-forex-wallet', methods=['POST'])
 @swag_from({
     'tags': ['Investment'],
@@ -51,13 +49,11 @@ def calculate_forex_wallet():
     data = request.get_json()
     print("[DEBUG] data:", data)
 
-    # Pobieramy dane dotyczące portfela i walut
-    wallet_name = data["wallet_name"]  # np. "USD_PLN_wallet_1"
+    wallet_name = data["wallet_name"]  
     parts = wallet_name.split("_")
-    base_currency = parts[0]  # np. "USD"
-    alt_currency = parts[1]   # np. "PLN"
+    base_currency = parts[0]  
+    alt_currency = parts[1]   
 
-    # Dane dla symulacji inwestycji walutowych
     normal_budget = float(data["normal_budget"])
     reverse_budget = float(data["reverse_budget"])
     interest_rate = float(data["interest_rate"])
@@ -69,18 +65,15 @@ def calculate_forex_wallet():
     duration_months = int(data["duration_months"])
     both_sides = data.get("both_sides", False)
 
-    # Dane dla symulacji lokaty (prosty procent)
     deposit_budget = float(data.get("deposit_budget", 0))
     deposit_annual_rate = float(data.get("deposit_annual_rate", 0))
 
-    # Konwersja dat
     start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
     end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
 
     results = []
 
-    # 1) SCENARIUSZ NORMAL (np. USD -> PLN)
-    normal_collection_name = base_currency + alt_currency  # np. "USDPLN"
+    normal_collection_name = base_currency + alt_currency 
     actual_exchange_rate_end_normal = _get_close_from_db(normal_collection_name, end_date)
 
     normal_doc = _calc_and_insert(
@@ -96,9 +89,8 @@ def calculate_forex_wallet():
     )
     results.append(normal_doc)
 
-    # 2) SCENARIUSZ REVERSE (np. PLN -> USD) – jeśli wybrano opcję both_sides
     if both_sides:
-        reverse_collection_name = alt_currency + base_currency  # np. "PLNUSD"
+        reverse_collection_name = alt_currency + base_currency  
         actual_exchange_rate_end_reverse = _get_close_from_db(reverse_collection_name, end_date)
 
         reverse_doc = _calc_and_insert(
@@ -114,13 +106,9 @@ def calculate_forex_wallet():
         )
         results.append(reverse_doc)
 
-    # 3) OBLICZANIE LOKATY – prosty (liniowy) procent
-    # Obliczamy odsetki:
-    #   interest = deposit_budget * (deposit_annual_rate / 100) * (duration_months / 12)
     interest_amount = deposit_budget * (deposit_annual_rate / 100) * (duration_months / 12)
     final_deposit_value = round(deposit_budget + interest_amount, 2)
 
-    # Zapisujemy deposit z tymi samymi datami co inwestycje
     deposit_doc = {
          "scenario": "deposit",
          "deposit_budget": deposit_budget,
@@ -162,7 +150,7 @@ def _calc_and_insert(wallet_name,
     if not actual_exchange_rate_end or actual_exchange_rate_end <= 0:
         actual_exchange_rate_end = user_exchange_rate
 
-    n = 12  # miesięczna kapitalizacja przy obliczeniach forex
+    n = 12  
     r = interest_rate / 100
     T = duration_months
 

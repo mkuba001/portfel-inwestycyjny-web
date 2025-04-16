@@ -12,7 +12,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import "chartjs-adapter-date-fns"; // Upewnij się, że moduł jest zainstalowany (npm install chartjs-adapter-date-fns)
+import "chartjs-adapter-date-fns"; 
 
 ChartJS.register(
   CategoryScale,
@@ -27,14 +27,11 @@ ChartJS.register(
 );
 
 export default function Charts({ walletName }) {
-  // Stany dla wykresów inwestycyjnych
   const [combinedLineChartData, setCombinedLineChartData] = useState(null);
   const [profitLossBarData, setProfitLossBarData] = useState(null);
-  // Stan dla wykresu predykcji vs. danych historycznych
   const [predictionsChartData, setPredictionsChartData] = useState(null);
   const [error, setError] = useState(null);
 
-  // --- Inwestycje: Combined Line Chart & Aggregated Profit/Loss Bar Chart ---
   useEffect(() => {
     if (!walletName) {
       setError("No investment wallet selected.");
@@ -49,7 +46,6 @@ export default function Charts({ walletName }) {
           return;
         }
 
-        // Podział inwestycji według kategorii
         const forexNormal = data.investments.filter(
           (inv) =>
             inv.scenario && inv.scenario.toLowerCase() === "normal"
@@ -63,10 +59,6 @@ export default function Charts({ walletName }) {
             inv.scenario && inv.scenario.toLowerCase() === "deposit"
         );
 
-        // --- Combined Line Chart ---
-        // Forex: dla każdej inwestycji generujemy dwa punkty:
-        //  - punkt początkowy: data start_time, wartość start_budget
-        //  - punkt końcowy: data end_time, wartość final_budget
         const normalData = forexNormal.flatMap((inv) => [
           { x: new Date(inv.start_time), y: parseFloat(inv.start_budget) },
           { x: new Date(inv.end_time), y: parseFloat(inv.final_budget) },
@@ -77,9 +69,6 @@ export default function Charts({ walletName }) {
           { x: new Date(inv.end_time), y: parseFloat(inv.final_budget) },
         ]).sort((a, b) => a.x - b.x);
 
-        // Deposit: dla każdej lokaty generujemy dwa punkty:
-        //  - punkt początkowy: data start_time, wartość deposit_budget
-        //  - punkt końcowy: data end_time, wartość final_deposit_value
         let depositData = [];
         if (depositInv.length > 0) {
           depositData = depositInv.flatMap((inv) => [
@@ -118,7 +107,6 @@ export default function Charts({ walletName }) {
           ],
         });
 
-        // --- Aggregated Profit/Loss Bar Chart ---
         const normalPL = forexNormal.reduce((acc, inv) => {
           const profit = parseFloat(inv.final_budget) - parseFloat(inv.start_budget);
           return acc + profit;
@@ -151,9 +139,7 @@ export default function Charts({ walletName }) {
       .catch((err) => setError(err.message));
   }, [walletName]);
 
-  // --- Predictions vs. Historical Chart ---
   useEffect(() => {
-    // Odczyt danych predykcyjnych z localStorage
     const predsStr = localStorage.getItem("predictions");
     let predsObj = null;
     if (predsStr) {
@@ -169,10 +155,7 @@ export default function Charts({ walletName }) {
       return;
     }
 
-    // Pobieramy dane historyczne z endpointu /api/historical-data
-    // Używamy wartości z localStorage: startDate, a jako datę końcową wykorzystujemy prediction_date (jeśli dostępna) lub endDate
     const startDateLS = localStorage.getItem("startDate");
-    // Aby wykres obejmował pełen okres predykcji, pobieramy prediction_date (np. 25.03) zamiast endDate, jeśli jest dostępna
     const predictionDate = localStorage.getItem("prediction_date") || localStorage.getItem("endDate");
     const baseCurrency = localStorage.getItem("baseCurrency") || "USD";
     const alternativeCurrency = localStorage.getItem("alternativeCurrency") || "PLN";
@@ -182,7 +165,6 @@ export default function Charts({ walletName }) {
       return;
     }
 
-    // Jeśli model wykorzystuje 60-dniowy lag, możemy ustalić, że dane historyczne zaczynają się 60 dni przed startDate.
     const startDateObj = new Date(startDateLS);
     startDateObj.setDate(startDateObj.getDate() - 60);
     const formattedStartDate = startDateObj.toISOString().split("T")[0];
@@ -201,8 +183,6 @@ export default function Charts({ walletName }) {
           return;
         }
 
-        // Budujemy wykres predykcji vs. historycznych danych.
-        // Używamy etykiet z jednej z tablic predykcyjnych (np. predictions_xgboost)
         const labels = predsObj.predictions_xgboost.map((item) => item.Date);
         const datasets = [];
 
@@ -242,7 +222,6 @@ export default function Charts({ walletName }) {
             fill: false,
           });
         }
-        // Dodajemy serię dla historycznych danych – zakładamy, że histData.historical to tablica obiektów { Date, Close }
         datasets.push({
           label: "Historical Actual",
           data: histData.historical.map((item) => item.Close),
@@ -260,7 +239,6 @@ export default function Charts({ walletName }) {
       });
   }, []);
 
-  // Opcje wykresów
   const lineChartOptions = {
     responsive: true,
     plugins: {
@@ -318,7 +296,6 @@ export default function Charts({ walletName }) {
         <p className="text-red-500">{error}</p>
       ) : (
         <>
-          {/* Inwestycje: Combined Line Chart */}
           {combinedLineChartData ? (
             <div className="mb-8">
               <Line data={combinedLineChartData} options={lineChartOptions} />
@@ -326,13 +303,11 @@ export default function Charts({ walletName }) {
           ) : (
             <p className="text-lg text-gray-300">Loading combined chart...</p>
           )}
-          {/* Inwestycje: Aggregated Profit/Loss Bar Chart */}
           {profitLossBarData ? (
             <Bar data={profitLossBarData} options={barChartOptions} />
           ) : (
             <p className="text-lg text-gray-300">Loading profit/loss chart...</p>
           )}
-          {/* Predykcje vs. Dane Historyczne */}
           {predictionsChartData ? (
             <div className="mt-8">
               <Line data={predictionsChartData} options={predictionsChartOptions} />

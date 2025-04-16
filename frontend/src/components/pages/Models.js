@@ -10,7 +10,6 @@ export default function Models() {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Po załadowaniu komponentu, wczytujemy waluty z localStorage
   useEffect(() => {
     const storedBase = localStorage.getItem("baseCurrency");
     const storedAlt = localStorage.getItem("alternativeCurrency");
@@ -24,22 +23,17 @@ export default function Models() {
     }
   }, [navigate]);
 
-  // Po ustawieniu walut, zapewniamy istnienie (lub tworzymy) portfel
   useEffect(() => {
     if (baseCurrency && alternativeCurrency) {
       ensureWalletExists();
     }
-    // eslint-disable-next-line
   }, [baseCurrency, alternativeCurrency]);
 
-  // === FUNKCJA do tworzenia / sprawdzenia portfela ===
   const ensureWalletExists = async () => {
     let walletName = localStorage.getItem("walletName");
 
-    // Sprawdzamy, czy forceNew jest "true"
     const forceNew = localStorage.getItem("forceNew") === "true";
 
-    // Jeżeli nie ma walletName ALBO chcemy wymusić nowy, to POST /api/start_new_wallet
     if (!walletName || forceNew) {
       const requestData = {
         base_currency: baseCurrency,
@@ -71,13 +65,11 @@ export default function Models() {
         console.error("❌ Błąd przy tworzeniu portfela:", err);
         setError(err.message);
       } finally {
-        // Usuwamy forceNew po jednorazowym użyciu
         localStorage.removeItem("forceNew");
       }
     }
   };
 
-  // Aktualizacja endDate na podstawie startDate (+7 dni)
   const handleStartDateChange = (newStartDate) => {
     setStartDate(newStartDate);
     const startDateObj = new Date(newStartDate);
@@ -86,7 +78,6 @@ export default function Models() {
     setEndDate(newEndDateObj.toISOString().split("T")[0]);
   };
 
-  // Wywołujemy /api/predict
   const handlePrediction = async () => {
     let walletName = localStorage.getItem("walletName");
     if (!walletName) {
@@ -118,11 +109,9 @@ export default function Models() {
         console.log("✅ Odpowiedź predykcji:", data);
         setPredictionData(data);
 
-        // Zapis do localStorage (DOTYCHCZAS):
         localStorage.setItem("startDate", startDate);
         localStorage.setItem("endDate", endDate);
 
-        // NOWE: Zapisujemy również final_xgb, final_rf, final_lstm, final_arima
         if (data.final_xgb !== undefined) {
           localStorage.setItem("finalXgb", data.final_xgb);
         }
@@ -136,12 +125,10 @@ export default function Models() {
           localStorage.setItem("finalArima", data.final_arima);
         }
 
-        // Zapisujemy predictions (obiekt) do localStorage w postaci JSON
         if (data.predictions) {
           localStorage.setItem("predictions", JSON.stringify(data.predictions));
         }
 
-        // Zapisujemy investment_duration_months
         if (data.investment_duration_months !== undefined) {
           localStorage.setItem(
             "investmentDurationMonths",
@@ -149,12 +136,10 @@ export default function Models() {
           );
         }
 
-        // Jeżeli endpoint wciąż zwraca "predicted_close", można zapisać
         if (data.predicted_close !== undefined) {
           localStorage.setItem("predictedClose", data.predicted_close);
         }
 
-        // Na koniec -> /prediction
         navigate("/prediction");
       })
       .catch((err) => {

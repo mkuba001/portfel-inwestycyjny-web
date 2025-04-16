@@ -8,20 +8,11 @@ export default function Home() {
   const [wallets, setWallets] = useState([]);
   const [error, setError] = useState(null);
 
-  /**
-   * Funkcja wywoływana po kliknięciu "Start NEW Investment".
-   * 1. Ustawia forceNew = "true" w localStorage,
-   * 2. Przenosi do ekranu wyboru par walutowych (/forex-pair).
-   */
   const handleStartNew = () => {
-    // KLUCZOWA POPRAWKA:
     localStorage.setItem("forceNew", "true");
     navigate('/forex-pair');
   };
 
-  /**
-   * Funkcja pobiera listę portfeli z backendu i otwiera listę do wyboru.
-   */
   const handleShowExistingWallets = async () => {
     if (showExistingWallets && wallets.length > 0) {
       setShowExistingWallets(false);
@@ -45,9 +36,6 @@ export default function Home() {
     }
   };
 
-  /**
-   * Funkcja wywoływana po wybraniu portfela z listy.
-   */
   const handleSelectWallet = (walletName) => {
     const parts = walletName.split('_'); 
     if (parts.length < 3) {
@@ -61,9 +49,6 @@ export default function Home() {
     localStorage.setItem('walletName', walletName);
     localStorage.setItem('baseCurrency', baseCurrency);
     localStorage.setItem('alternativeCurrency', alternativeCurrency);
-
-    // Tu nie ustawiamy forceNew = "true", bo wczytujemy ISTNIEJĄCY portfel.
-    // Od razu przechodzimy do /results
     navigate('/results');
   };
 
@@ -74,7 +59,6 @@ export default function Home() {
       </p>
 
       <div className="flex flex-col sm:flex-row gap-4">
-        {/* Przycisk: Start Now (czyli NOWA inwestycja) */}
         <button
           onClick={handleStartNew}
           className="bg-sky-500 hover:bg-sky-700 text-white font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-full text-base sm:text-xl shadow-lg transform hover:scale-105 transition-transform duration-300"
@@ -82,7 +66,6 @@ export default function Home() {
           Start NEW Investment
         </button>
 
-        {/* Przycisk: Load Existing Wallet */}
         <button
           onClick={handleShowExistingWallets}
           className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-full text-base sm:text-xl shadow-lg transform hover:scale-105 transition-transform duration-300"
@@ -97,7 +80,6 @@ export default function Home() {
         </p>
       )}
 
-      {/* Lista istniejących portfeli */}
       {showExistingWallets && wallets.length > 0 && (
         <div className="mt-8 w-full max-w-md bg-gray-800 p-4 rounded-lg shadow-lg">
           <h2 className="text-xl text-white font-bold mb-4">Select a Wallet:</h2>
